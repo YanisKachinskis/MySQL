@@ -1,0 +1,25 @@
+3. Создайте дамп базы данных example из предыдущего задания, 
+разверните содержимое дампа в новую базу данных sample.
+
+4. (по желанию) Ознакомьтесь более подробно с документацией утилиты mysqldump.
+Создайте дамп единственной таблицы help_keyword базы данных mysql. 
+Причем добейтесь того, чтобы дамп содержал только первые 100 строк таблицы.
+____________________________________________________________________________________
+
+3.
+Создание дампа БД example:
+mysqldump example > example.sql
+
+Разворачивание бэкапа в новую БД sample:
+mysql> CREATE DATABASE sample;
+Query OK, 1 row affected (0.01 sec)
+mysql> USE sample;
+Database changed
+mysql> SOURCE example.sql
+
+или
+
+mysql sample < example.sql
+
+4.*
+mysqldump mysql help_keyword --where="true limit 100" > dump.sql
