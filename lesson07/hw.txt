@@ -1,0 +1,32 @@
+Lesson 07
+
+1. Составьте список пользователей users, которые осуществили хотя 
+бы один заказ orders в интернет магазине.
+2. Выведите список товаров products и разделов catalogs, который 
+соответствует товару.
+3. (по желанию) Пусть имеется таблица рейсов flights (id, from, to) 
+и таблица городов cities (label, name). Поля from, to и label 
+содержат английские названия городов, поле name — русское. Выведите 
+список рейсов flights с русскими названиями городов.
+________________________________________________________________________
+
+1.
+SELECT name FROM users WHERE id IN (SELECT user_id FROM orders);
+
+2.
+SELECT  p.name, c.name FROM products AS p JOIN catalogs AS c ON p.catalog_id = c.id;
+
+3.
+SELECT
+  f.id,
+  c1.name AS `from`,
+  c2.name AS `to`
+FROM
+  flights AS f
+JOIN
+  cities AS c1
+JOIN 
+  cities AS c2
+ON
+  f.`from` = c1.label AND f.`to` = c2.label
+ORDER BY f.id;
