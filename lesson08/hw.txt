@@ -1,0 +1,44 @@
+lesson08
+
+1. Подсчитать общее количество лайков, которые получили 10 самых молодых пользователей.
+2. Определить кто больше поставил лайков (всего) - мужчины или женщины?
+3. Найти 10 пользователей, которые проявляют наименьшую активность в 
+использовании социальной сети.
+_________________________________________________________________________________________
+
+1.
+SELECT profiles.user_id, birthday, COUNT(likes.target_id) AS likes FROM profiles LEFT JOIN likes 
+	ON profiles.user_id = target_id AND target_type_id = 2 
+	GROUP BY profiles.user_id
+	ORDER BY birthday DESC LIMIT 10;
+	
+Можно обернуть в SELECT с SUM() для подсчета общего количества.
+
+2.
+ SELECT IF(
+  (SELECT COUNT(*) FROM profiles JOIN likes ON profiles.user_id = likes.user_id AND gender = 'm') >
+  (SELECT COUNT(*) FROM profiles JOIN likes ON profiles.user_id = likes.user_id AND gender = 'f'),
+   'Мужчины больше лайкают', 
+   'Женщины больше лайкают') AS result,
+  (SELECT COUNT(*) FROM profiles JOIN likes ON profiles.user_id = likes.user_id AND gender = 'm') AS male_likes,
+  (SELECT COUNT(*) FROM profiles JOIN likes ON profiles.user_id = likes.user_id AND gender = 'f') AS female_likes;
+  
+  SELECT COUNT(gender) AS gender 
+    FROM profiles p 
+	  JOIN likes ON p.user_id = likes.user_id 
+	  GROUP BY gender 
+	  ORDER BY gender DESC 
+	  LIMIT 1;
+  
+3.
+SELECT u.id, COUNT(l.user_id) AS likes, COUNT(p.user_id) AS posts, COUNT(m.from_user_id) AS messages, 
+ COUNT(l.user_id) + COUNT(p.user_id) + COUNT(m.from_user_id) AS results
+  FROM users u 
+  LEFT JOIN likes l
+    ON u.id = l.user_id
+  LEFT JOIN posts p
+    ON u.id = p.user_id
+  LEFT JOIN messages m
+   ON u.id = m.from_user_id
+ GROUP BY u.id
+ ORDER BY results LIMIT 10; 
