@@ -92,12 +92,13 @@ ________________________________________________________________________________
 _____________________________________________________________________________________________________
 
 1.
+DROP PROCEDURE IF EXISTS hello;
 CREATE PROCEDURE hello ()
  BEGIN
 	 CASE 
 	 	WHEN HOUR(NOW()) > 6 AND HOUR(NOW()) < 12 THEN SELECT 'Доброе утро' AS Greeting;
 	 	WHEN HOUR(NOW()) > 12 AND HOUR(NOW()) < 18 THEN SELECT 'Добрый день' AS Greeting;
-	 	WHEN HOUR(NOW()) > 18 AND HOUR(NOW()) < 00 THEN SELECT 'Добрый вечер' AS Greeting;
+	 	WHEN HOUR(NOW()) > 18 AND HOUR(NOW()) < 24 THEN SELECT 'Добрый вечер' AS Greeting;
 	 	WHEN HOUR(NOW()) > 0 AND HOUR(NOW()) < 6 THEN SELECT 'Доброй ночи' AS Greeting;
 	 END CASE;
  END//
