@@ -31,8 +31,8 @@ SELECT profiles.user_id, birthday, COUNT(likes.target_id) AS likes FROM profiles
 	  LIMIT 1;
   
 3.
-SELECT u.id, COUNT(l.user_id) AS likes, COUNT(p.user_id) AS posts, COUNT(m.from_user_id) AS messages, 
- COUNT(l.user_id) + COUNT(p.user_id) + COUNT(m.from_user_id) AS results
+SELECT u.id, COUNT(DISTINCT l.user_id) AS likes, COUNT(DISTINCT p.user_id) AS posts, COUNT(DISTINCT m.from_user_id) AS messages, 
+ COUNT(DISTINCT l.user_id) + COUNT(DISTINCT p.user_id) + COUNT(DISTINCT m.from_user_id) AS results
   FROM users u 
   LEFT JOIN likes l
     ON u.id = l.user_id
