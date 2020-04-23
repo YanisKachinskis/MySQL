@@ -1,0 +1,79 @@
+Lesson10
+
+1. Проанализировать какие запросы могут выполняться наиболее часто в 
+процессе работы приложения и добавить необходимые индексы.
+
+2. Задание на оконные функции.
+Провести аналитику в разрезе групп.
+Построить запрос, который будет выводить следующие столбцы:
+имя группы
+среднее количество пользователей в группах
+самый молодой пользователь в группе
+самый пожилой пользователь в группе
+количество пользователей в группе
+всего пользователей в системе
+отношение в процентах (количество пользователей в группе / всего пользователей в системе) * 100
+
+3. (по желанию) Задание на денормализацию
+Разобраться как построен и работает следующий запрос:
+Найти 10 пользователей, которые проявляют наименьшую активность в использовании социальной сети.
+ВЫБЕРИТЕ users.id,
+COUNT (DISTINCT messages.id) +
+COUNT (DISTINCT likes.id) +
+COUNT (DISTINCT media.id) AS деятельность
+ОТ пользователей
+LEFT JOIN сообщения
+ON users.id = messages.from_user_id
+LEFT JOIN нравится
+ON users.id = likes.user_id
+LEFT JOIN СМИ
+ON users.id = media.user_id
+GROUP BY users.id
+ЗАКАЗАТЬ ПО ДЕЯТЕЛЬНОСТИ
+LIMIT 10;
+
+Правильно-ли он построен?
+Какие изменения, включая денормализацию, можно внести в структуру БД чтобы существенно повысить скорость работы этого запроса?
+___________________________________________________________________________________________________
+
+1.
+-- В первую очередь нужно сделать уникальные индексы для колонок email и phone, учитывая, 
+что эти данные используются для аутентификанции пользователя на сайте.
+CREATE UNIQUE INDEX users_email_uq ON users(email);
+CREATE UNIQUE INDEX users_phone_uq ON users(phone);
+
+-- Скорее всего потребуется индекс на last_name в таблице users, удобен для поиска человека по фамилии
+CREATE INDEX users_last_name_idx ON users(last_name);
+
+-- И составной индекс, который рассматривался на уроке для сообщений (messages) тоже будет востребован
+CREATE INDEX messages_from_user_id_to_user_id_idx ON messages (from_user_id, to_user_id);
+
+-- Возможно потребуетсяиндекс на likes
+CREATE INDEX likes_user_id_idx ON likes(user_id);
+
+2.
+SELECT DISTINCT c.name,
+  COUNT(p.user_id) OVER w AS agerage,
+  MIN(p.birthday) OVER w AS max_age,
+  MAX(p.birthday) OVER w AS min_age,
+  COUNT(p.user_id) OVER w AS users_num_at_group,
+  COUNT(p.user_id) OVER() AS total_number,
+  COUNT(p.user_id) OVER w / COUNT(p.user_id) OVER() * 100 AS "%%"
+      FROM (communities c
+      LEFT JOIN communities_users cu
+        ON c.id = cu.community_id
+      LEFT JOIN profiles p 
+        ON p.user_id = cu.user_id)
+        WINDOW w AS (PARTITION BY c.name);
+
+
+-- в селекте выше во втором столбце (average) смог вывести только количество пользователей по группам, но не решил задачу вывода среднего значения.
+Отдельно среднее смог вывести только таким запросом:
+SELECT AVG(tmp.average) 
+  FROM (SELECT COUNT(p.user_id) AS average
+         FROM communities c
+          JOIN communities_users cu
+             ON c.id = cu.community_id
+           JOIN profiles p 
+             ON cu.user_id = p.user_id
+             GROUP BY c.name) AS tmp;
