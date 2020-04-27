@@ -1,0 +1,128 @@
+lesson11
+
+Практическое задание по теме “Оптимизация запросов”
+1. Создайте таблицу logs типа Archive. Пусть при каждом создании записи в таблицах users, 
+catalogs и products в таблицу logs помещается время и дата создания записи, название 
+таблицы, идентификатор первичного ключа и содержимое поля name.
+2. (по желанию) Создайте SQL-запрос, который помещает в таблицу users миллион записей.
+__________________________________________________________________________________________
+
+1. 
+CREATE TABLE logs(
+  `timestamp` DATETIME NOT NULL,
+  table_name VARCHAR(255) NOT NULL,
+  id INT UNSIGNED NOT NULL,
+  name VARCHAR(255)
+) ENGINE=Archive;
+
+-- логгирование при обновлении users
+DELIMITER -
+
+DROP TRIGGER IF EXISTS log_user_insert-
+CREATE TRIGGER log_user_insert AFTER INSERT ON users
+  FOR EACH ROW
+  BEGIN
+	  INSERT INTO logs VALUES (NOW(), 'users', NEW.id, NEW.name);
+  END-
+  
+DELIMITER ;
+
+-- логгирование при обновлении users
+DELIMITER -
+
+DROP TRIGGER IF EXISTS log_products_insert-
+CREATE TRIGGER log_products_insert AFTER INSERT ON products
+  FOR EACH ROW
+  BEGIN
+	  INSERT INTO logs VALUES (NOW(), 'products', NEW.id, NEW.name);
+  END-
+  
+DELIMITER ;
+
+-- логгирование при обновлении catalogs
+DELIMITER -
+
+DROP TRIGGER IF EXISTS log_catalogs_insert-
+CREATE TRIGGER log_catalogs_insert AFTER INSERT ON catalogs
+  FOR EACH ROW
+  BEGIN
+	  INSERT INTO logs VALUES (NOW(), 'catalogs', NEW.id, NEW.name);
+  END-
+  
+DELIMITER ;
+
+mysql> SELECT * FROM logs;
++---------------------+------------+----+----------+
+| timestamp           | table_name | id | name     |
++---------------------+------------+----+----------+
+| 2020-04-27 19:30:39 | users      | 17 | vova     |
+| 2020-04-27 19:39:15 | products   | 11 | MSI Z320 |
+| 2020-04-27 19:41:22 | catalogs   |  5 | HDD      |
++---------------------+------------+----+----------+
+3 rows in set (0.01 sec)
+
+2.
+DELIMITER -
+
+DROP PROCEDURE IF EXISTS add_million;
+CREATE PROCEDURE add_million ()
+ BEGIN
+	DECLARE i INT DEFAULT 1;
+	WHILE i < 1000001 DO
+		INSERT INTO users VALUES (i, DEFAULT, DEFAULT, DEFAULT, DEFAULT);
+		SET i = i + 1;
+	END WHILE;
+ END-
+ 
+DELIMITER ;
+
+CALL add_million();
+__________________________________________________________________________________________
+
+Практическое задание по теме “NoSQL”
+1. В базе данных Redis подберите коллекцию для подсчета посещений с определенных IP-адресов.
+2. При помощи базы данных Redis решите задачу поиска имени пользователя по электронному адресу 
+и наоборот, поиск электронного адреса пользователя по его имени.
+3. Организуйте хранение категорий и товарных позиций учебной базы данных shop в СУБД MongoDB.
+__________________________________________________________________________________________
+
+1.
+-- создаем хэш log_in. Ключами являются IP адреса, а значениями числа типа int, которые будут 
+счетчиками в парах.
+127.0.0.1:6379> HSET log_in 172.16.66.10 2
+(integer) 1
+127.0.0.1:6379> HSET log_in 192.168.144.125 2 
+(integer) 1
+127.0.0.1:6379> HSET log_in 10.1.3.150 4 
+(integer) 1
+-- Изменение счетчика осушествляется с помощью команды, где "15"  - число на которое увеличиваем
+значение
+127.0.0.1:6379> HINCRBY log_in 172.16.66.10 15
+(integer) 17
+
+2. 
+-- создаем две хэш коллекции: login:email и email:login 
+127.0.0.1:6379> HMSET login:email vasili vas@mail.ru petya petr@list.ru
+127.0.0.1:6379> HMSET email:login vas@mail.ru vasili petr@list.ru petya
+
+HGETALL login:email
+HGETALL email:login 
+выводит список всех пар ключ - значение
+
+3.
+> use shop
+> db.shop.insert({category: 'CPU'})
+> db.shop.update({category: 'CPU'},{$set: {product: { name: 'Intel Core i3-8100', description: 'Процессор Intel', price:7890.00}}})
+> db.shop.insert({category: 'motherboard'})
+> db.shop.update({category: 'motherboard'},{$set: {product: { name: 'ASUS ROG MAXIMUS X HERO', description: 'Z370, Socket 1151-V2, DDR4, ATX', price:19310.50}}})
+> db.shop.insert({category: 'motherboard'})
+> db.shop.update({ "_id" : ObjectId("5ea736fad67c3f9b5c86a30e"), "category" : "motherboard" },{$set: {product: { name: 'ASUS ROG MAXIMUS X HERO', description: 'Z370, Socket 1151-V2, DDR4, ATX', price:19310.50}}})
+> db.shop.insert({category: 'CPU'})
+> db.shop.update({ "_id" : ObjectId("5ea73a7244f097bad3437893"), "name" : "CPU" },{$set: {product: { name: 'AMD FX-8320E', description: 'Процессор AMD', price:4780.00}}})
+> db.shop.find()
+{ "_id" : ObjectId("5ea73454d67c3f9b5c86a30c"), "category" : "CPU", "product" : { "name" : "Intel Core i3-8100", "description" : "Процессор Intel", "price" : 7890 } }
+{ "_id" : ObjectId("5ea73669d67c3f9b5c86a30d"), "category" : "motherboard", "product" : { "name" : "Gigabyte H310M S2H", "description" : "H310, Socket 1151-V2, DDR4, mATX", "price" : 4790 } }
+{ "_id" : ObjectId("5ea736fad67c3f9b5c86a30e"), "category" : "motherboard", "product" : { "name" : "ASUS ROG MAXIMUS X HERO", "description" : "Z370, Socket 1151-V2, DDR4, ATX", "price" : 19310.5 } }
+{ "_id" : ObjectId("5ea73a7244f097bad3437893"), "category" : "CPU", "product" : { "name" : "AMD FX-8320E", "description" : "Процессор AMD", "price" : 4780 } }
+
+
