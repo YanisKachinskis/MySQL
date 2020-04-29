@@ -53,27 +53,20 @@ CREATE INDEX likes_user_id_idx ON likes(user_id);
 
 2.
 SELECT DISTINCT c.name,
-  COUNT(p.user_id) OVER w AS agerage,
+  COUNT(cu.user_id) OVER () / (SELECT COUNT(*) FROM communities) AS agerage,
   MIN(p.birthday) OVER w AS max_age,
   MAX(p.birthday) OVER w AS min_age,
   COUNT(p.user_id) OVER w AS users_num_at_group,
-  COUNT(p.user_id) OVER() AS total_number,
+  (SELECT COUNT(*) FROM users) AS total_number,
   COUNT(p.user_id) OVER w / COUNT(p.user_id) OVER() * 100 AS "%%"
-      FROM (communities c
+      FROM communities c
       LEFT JOIN communities_users cu
-        ON c.id = cu.community_id
-      LEFT JOIN profiles p 
-        ON p.user_id = cu.user_id)
+        ON cu.community_id = c.id
+      LEFT JOIN users u
+        ON cu.user_id = u.id
+      LEFT JOIN profiles p
+        ON p.user_id = u.id
         WINDOW w AS (PARTITION BY c.name);
 
 
--- в селекте выше во втором столбце (average) смог вывести только количество пользователей по группам, но не решил задачу вывода среднего значения.
-Отдельно среднее смог вывести только таким запросом:
-SELECT AVG(tmp.average) 
-  FROM (SELECT COUNT(p.user_id) AS average
-         FROM communities c
-          JOIN communities_users cu
-             ON c.id = cu.community_id
-           JOIN profiles p 
-             ON cu.user_id = p.user_id
-             GROUP BY c.name) AS tmp;
+
